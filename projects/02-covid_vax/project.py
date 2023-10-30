@@ -17,10 +17,13 @@ import plotly.express as px
 
 
 def count_monotonic(arr):
-    ...
+    difference = np.diff(arr)
+    return np.sum(difference < 0)
 
 def monotonic_violations_by_country(vacs):    
-    ...
+    vacs_mono = vacs.groupby('Country_Region')[['Doses_admin', 'People_at_least_one_dose']].agg(count_monotonic)
+    result = vacs_mono.rename(columns={'Doses_admin': 'Doses_admin_monotonic', 'People_at_least_one_dose': 'People_at_least_one_dose_monotonic'})
+    return result
 
 
 # ---------------------------------------------------------------------
@@ -28,9 +31,12 @@ def monotonic_violations_by_country(vacs):
 # ---------------------------------------------------------------------
 
 
-def robust_totals(vacs):
-    ...
+def percentile(arr):
+    return np.percentile(arr, 97)
 
+def robust_totals(vacs):
+    robust = vacs.groupby('Country_Region')[['Doses_admin', 'People_at_least_one_dose']].agg(percentile)
+    return robust
 
 # ---------------------------------------------------------------------
 # QUESTION 3
@@ -69,7 +75,12 @@ def draw_choropleth(tots, pops_fixed):
 
 
 def clean_israel_data(df):
-    ...
+    data = df.copy()
+    data['Age'].replace('-', np.nan, inplace=True)
+    data['Age'] = data['Age'].astype(float)
+    data['Vaccinated'] = data['Vaccinated'].astype(bool)
+    data['Severe Sickness'] = data['Severe Sickness'].astype(bool)
+    return data
 
 
 # ---------------------------------------------------------------------
@@ -91,7 +102,12 @@ def missingness_type():
 
 
 def effectiveness(df):
-    ...
+    vac = df[df['Vaccinated']]
+    unvac = df[~df['Vaccinated']]
+    pv = vac[vac['Severe Sickness']].shape[0] / vac.shape[0]
+    pu = unvac[unvac['Severe Sickness']].shape[0] / unvac.shape[0]
+    effect = 1-pv/pu
+    return effect
 
 
 # ---------------------------------------------------------------------
@@ -130,7 +146,13 @@ def effectiveness_calculator(
     old_risk_vaccinated,
     old_risk_unvaccinated
 ):
-    ...
+    result = {}
+    overall_risk_vaccinated = young_vaccinated_prop * young_risk_vaccinated + old_vaccinated_prop * old_risk_vaccinated
+    overall_risk_unvaccinated = young_vaccinated_prop * young_risk_unvaccinated + old_vaccinated_prop * old_risk_unvaccinated
+    result['Overall'] = 1 - (overall_risk_vaccinated / overall_risk_unvaccinated)
+    result['Young'] = 1 - (young_risk_vaccinated / young_risk_unvaccinated)
+    result['Old'] = 1 - (old_risk_vaccinated / old_risk_unvaccinated)
+    return result
 
 
 # ---------------------------------------------------------------------

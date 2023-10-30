@@ -108,7 +108,7 @@ def late_week(time):
     minute = i.split(':')[1]
     second = i.split(':')[2]
     total = int(hour) * 3600 + int(minute) * 60 + int(second)
-    if total == 0:
+    if total < 6*60*60:
         week = 0
         num.append(week)
     elif 0 < total <= 60*60*24*7:
