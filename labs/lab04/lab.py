@@ -44,7 +44,7 @@ def count_frequency(login):
 
 
 def suits_null_hyp():
-    return [1, 2]
+    return [2]
 
 def simulate_suits_null():
     data = [0, 1]
@@ -76,7 +76,7 @@ def car_alt_hypoth():
     return [2, 6]
 
 def car_test_stat():
-    return [1, 2, 4]
+    return [1, 4]
 
 def car_p_value():
     return 5
@@ -101,7 +101,7 @@ def simulate_bhbe_null(n):
     return new_array
 
 def superheroes_calc_pval():
-    return [0.0, 'Reject']
+    return [0.00012, 'Reject']
 
 
 # ---------------------------------------------------------------------
@@ -111,7 +111,6 @@ def superheroes_calc_pval():
 
 def diff_of_means(data, col='orange'):
     return abs(data.groupby('Factory')[col].mean()[0]-data.groupby('Factory')[col].mean()[1])
-
 
 def simulate_null(data, col='orange'):
     new_shuffled = data.assign(Shuffled_factory=np.random.permutation(data['Factory']))
@@ -123,7 +122,7 @@ def pval_color(data, col='orange'):
     for _ in range(n_repetitions):
         diff = simulate_null(data, col)
         differences.append(diff)
-    return np.mean(differences == diff_of_means(data, col))
+    return np.mean(differences >= diff_of_means(data, col))
 
 
 # ---------------------------------------------------------------------
@@ -133,16 +132,15 @@ def pval_color(data, col='orange'):
 
 def ordered_colors():
     return [('yellow', 0.0),
- ('orange', 0.004),
- ('red', 0.006),
- ('green', 0.01),
- ('purple', 0.013)]
+ ('orange', 0.033),
+ ('red', 0.236),
+ ('green', 0.495),
+ ('purple', 0.984)]
 
 
 # ---------------------------------------------------------------------
 # QUESTION 8
 # ---------------------------------------------------------------------
-
 
 
 def same_color_distribution():

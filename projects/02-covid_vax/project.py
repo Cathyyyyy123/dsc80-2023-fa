@@ -43,8 +43,27 @@ def robust_totals(vacs):
 # ---------------------------------------------------------------------
 
 
+def split_percentage(x):
+    return float(x.split('%')[0])
+
+
+def split_area(x):
+    return int(x.split('Km')[0].replace('_', '').replace(',', ''))
+
+
+def split_density(x):
+    return float(x.split('/')[0])
+
+
 def fix_dtypes(pops_raw):
-    ...
+    pop = pops_raw.copy()
+    wout_per = pop['World Percentage'].apply(split_percentage)
+    wout_per = wout_per/100
+    pop['World Percentage'] = wout_per
+    pop['Population in 2023'] = (pop['Population in 2023']*1000).astype(int)
+    pop['Area (Km²)'] = pop['Area (Km²)'].apply(split_area)
+    pop['Density (P/Km²)'] = pop['Density (P/Km²)'].apply(split_density)
+    return pop
 
 
 # ---------------------------------------------------------------------
@@ -53,11 +72,32 @@ def fix_dtypes(pops_raw):
 
 
 def missing_in_pops(tots, pops):
-    ...
+    tots_copy = tots.copy()
+    pops_copy = pops.copy()
+    index_col = tots_copy.index.name if tots_copy.index.name else 'index'
+    countries = tots_copy.reset_index()[index_col]
+    countries_in_tots = set(countries)
+    countries_in_pops = set(pops_copy['Country (or dependency)'])
+    final_countries = countries_in_tots - countries_in_pops
+    return final_countries
 
     
 def fix_names(pops):
-    ...
+    fixed_pops = pops.copy()
+    name_mapping = {
+        'Myanmar': 'Burma',
+        'Cape Verde': 'Cabo Verde',
+        'Republic of the Congo': 'Congo (Brazzaville)',
+        'DR Congo': 'Congo (Kinshasa)',
+        'Ivory Coast': "Cote d'Ivoire",
+        'Czech Republic': 'Czechia',
+        'South Korea': 'Korea, South',
+        'United States': 'US',
+        'Palestine': 'West Bank and Gaza'
+    }
+    fixed_pops['Country (or dependency)'] = fixed_pops['Country (or dependency)'].replace(name_mapping)
+    
+    return fixed_pops
 
 
 # ---------------------------------------------------------------------
@@ -66,7 +106,24 @@ def fix_names(pops):
 
 
 def draw_choropleth(tots, pops_fixed):
-    ...
+    tots_copy  = tots.copy()
+    tots_copy = tots_copy.reset_index()
+    pops_fixed_copy = pops_fixed.copy()
+    tots_copy.rename(columns={'Country_Region': 'Country (or dependency)'}, inplace=True)
+    merged = tots_copy.merge(pops_fixed_copy, on='Country (or dependency)')
+    merged['Doses Per Person'] = merged['Doses_admin'] / merged['Population in 2023']
+    merged
+    fig = px.choropleth(merged, 
+                            locations="ISO", 
+                            color="Doses Per Person",
+                            hover_name="Country (or dependency)",
+                            title="COVID Vaccine Doses Per Person, Globally",
+                            color_continuous_scale=px.colors.sequential.Reds,
+                            labels={'Doses Per Person': 'Doses Per Person'}
+                        )
+        
+    fig.update_layout(title_font_family="Arial", title_font_size=24)
+    return fig
 
 
 # ---------------------------------------------------------------------
@@ -89,11 +146,27 @@ def clean_israel_data(df):
 
 
 def mcar_permutation_tests(df, n_permutations=100):
-    ...
+    stats = []
+    for _ in range(n_permutations):
+        shuffled = df.copy()
+        shuffled['Vaccinated'] = np.random.permutation(shuffled['Vaccinated'])
+        grouped = shuffled.groupby('Vaccinated')['Age'].mean().diff().abs().iloc[-1]
+        stats.append(grouped)
+    stats = np.array(stats)
     
-    
+    stats2 = []
+    for _ in range(n_permutations):
+        shuffled = df.copy()
+        shuffled['Severe Sickness'] = np.random.permutation(shuffled['Severe Sickness'])
+        grouped = shuffled.groupby('Severe Sickness')['Age'].mean().diff().abs().iloc[-1]
+        stats2.append(grouped)
+    stats2 = np.array(stats2)
+
+    return (stats, stats2)
+
+
 def missingness_type():
-    ...
+    return 1
 
 
 # ---------------------------------------------------------------------
@@ -129,7 +202,31 @@ AGE_GROUPS = [
 ]
 
 def stratified_effectiveness(df):
-    ...
+    result = []
+    
+    df = df.copy()
+    g1 = df[(12 <= df['Age']) & (df['Age'] < 15)]
+    g2 = df[(16 <= df['Age']) & (df['Age'] < 19)]
+    g3 = df[(20 <= df['Age']) & (df['Age'] < 29)]
+    g4 = df[(30 <= df['Age']) & (df['Age'] < 39)]
+    g5 = df[(40 <= df['Age']) & (df['Age'] < 49)]
+    g6 = df[(50 <= df['Age']) & (df['Age'] < 59)]
+    g7 = df[(60 <= df['Age']) & (df['Age'] < 69)]
+    g8 = df[(70 <= df['Age']) & (df['Age'] < 79)]
+    g9 = df[(80 <= df['Age']) & (df['Age'] < 89)]
+    g10 = df[(90 <= df['Age'])]
+
+    result.append(effectiveness(g1))
+    result.append(effectiveness(g2))
+    result.append(effectiveness(g3))
+    result.append(effectiveness(g4))
+    result.append(effectiveness(g5))
+    result.append(effectiveness(g6))
+    result.append(effectiveness(g7))
+    result.append(effectiveness(g8))
+    result.append(effectiveness(g9))
+    result.append(effectiveness(g10))
+    return pd.Series(result, index=AGE_GROUPS)
 
 
 # ---------------------------------------------------------------------
