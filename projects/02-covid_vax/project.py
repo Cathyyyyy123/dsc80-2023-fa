@@ -150,7 +150,8 @@ def mcar_permutation_tests(df, n_permutations=100):
     for _ in range(n_permutations):
         shuffled = df.copy()
         shuffled['Vaccinated'] = np.random.permutation(shuffled['Vaccinated'])
-        grouped = shuffled.groupby('Vaccinated')['Age'].mean().diff().abs().iloc[-1]
+        shuffled = shuffled.assign(missing_age = shuffled['Age'].isna())
+        grouped = shuffled.groupby('Vaccinated')['missing_age'].mean().diff().abs().iloc[-1]
         stats.append(grouped)
     stats = np.array(stats)
     
@@ -158,7 +159,8 @@ def mcar_permutation_tests(df, n_permutations=100):
     for _ in range(n_permutations):
         shuffled = df.copy()
         shuffled['Severe Sickness'] = np.random.permutation(shuffled['Severe Sickness'])
-        grouped = shuffled.groupby('Severe Sickness')['Age'].mean().diff().abs().iloc[-1]
+        shuffled = shuffled.assign(missing_age = shuffled['Age'].isna())
+        grouped = shuffled.groupby('Severe Sickness')['missing_age'].mean().diff().abs().iloc[-1]
         stats2.append(grouped)
     stats2 = np.array(stats2)
 
@@ -245,8 +247,10 @@ def effectiveness_calculator(
 ):
     result = {}
     overall_risk_vaccinated = young_vaccinated_prop * young_risk_vaccinated + old_vaccinated_prop * old_risk_vaccinated
-    overall_risk_unvaccinated = young_vaccinated_prop * young_risk_unvaccinated + old_vaccinated_prop * old_risk_unvaccinated
-    result['Overall'] = 1 - (overall_risk_vaccinated / overall_risk_unvaccinated)
+    overall_risk_unvaccinated = (1- young_vaccinated_prop) * young_risk_unvaccinated + (1 - old_vaccinated_prop) * old_risk_unvaccinated
+    pv = overall_risk_vaccinated / (young_vaccinated_prop + old_vaccinated_prop)
+    pu = overall_risk_unvaccinated / ((1 - young_vaccinated_prop) + (1 - old_vaccinated_prop))
+    result['Overall'] = 1 - (pv / pu)
     result['Young'] = 1 - (young_risk_vaccinated / young_risk_unvaccinated)
     result['Old'] = 1 - (old_risk_vaccinated / old_risk_unvaccinated)
     return result
@@ -258,4 +262,13 @@ def effectiveness_calculator(
 
 
 def extreme_example():
-    ...
+    result = {
+        'young_vaccinated_prop': 0.01,
+        'old_vaccinated_prop': 0.99,
+        'young_risk_vaccinated': 0.01,
+        'young_risk_unvaccinated': 0.07,
+        'old_risk_vaccinated': 0.09,
+        'old_risk_unvaccinated': 0.5
+    }
+
+    return result
