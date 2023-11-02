@@ -149,8 +149,8 @@ def mcar_permutation_tests(df, n_permutations=100):
     stats = []
     for _ in range(n_permutations):
         shuffled = df.copy()
-        shuffled['Vaccinated'] = np.random.permutation(shuffled['Vaccinated'])
         shuffled = shuffled.assign(missing_age = shuffled['Age'].isna())
+        shuffled['Vaccinated'] = np.random.permutation(shuffled['Vaccinated'])
         grouped = shuffled.groupby('Vaccinated')['missing_age'].mean().diff().abs().iloc[-1]
         stats.append(grouped)
     stats = np.array(stats)
@@ -158,8 +158,8 @@ def mcar_permutation_tests(df, n_permutations=100):
     stats2 = []
     for _ in range(n_permutations):
         shuffled = df.copy()
-        shuffled['Severe Sickness'] = np.random.permutation(shuffled['Severe Sickness'])
         shuffled = shuffled.assign(missing_age = shuffled['Age'].isna())
+        shuffled['Severe Sickness'] = np.random.permutation(shuffled['Severe Sickness'])
         grouped = shuffled.groupby('Severe Sickness')['missing_age'].mean().diff().abs().iloc[-1]
         stats2.append(grouped)
     stats2 = np.array(stats2)
